@@ -1,170 +1,237 @@
 const userTab = document.querySelector("[data-userWeather]");
 const searchTab = document.querySelector("[data-searchWeather]");
-const userContainer = document.querySelector(".weather-container");
-
-const grantAccessContainer = document.querySelector(".grant-location-container");
 const searchForm = document.querySelector("[data-searchForm]");
+const searchInput = document.querySelector("[data-searchInput]");
 const loadingScreen = document.querySelector(".loading-container");
 const userInfoContainer = document.querySelector(".user-info-container");
+const forecastContainer = document.getElementById("forecast");
+const recentCitiesContainer = document.getElementById("recentCitiesContainer");
+const recentCities = document.getElementById("recentCities");
 
-//initially vairables need????
+const cityName = document.getElementById("cityName");
+const weatherIcon = document.getElementById("weatherIcon");
+const description = document.getElementById("description");
+const temperature = document.getElementById("temperature");
+const humidityVal = document.getElementById("humidityVal");
+const windVal = document.getElementById("windVal");
 
-let oldTab = userTab;
 const API_KEY = "d1845658f92b31c64bd94f06f7188c9c";
-oldTab.classList.add("current-tab");
-getfromSessionStorage();
 
-function switchTab(newTab) {
-    if(newTab != oldTab) {
-        oldTab.classList.remove("current-tab");
-        oldTab = newTab;
-        oldTab.classList.add("current-tab");
+let currentTab = userTab;
 
-        if(!searchForm.classList.contains("active")) {
-            //kya search form wala container is invisible, if yes then make it visible
-            userInfoContainer.classList.remove("active");
-            grantAccessContainer.classList.remove("active");
-            searchForm.classList.add("active");
-        }
-        else {
-            //main pehle search wale tab pr tha, ab your weather tab visible karna h 
-            searchForm.classList.remove("active");
-            userInfoContainer.classList.remove("active");
-            //ab main your weather tab me aagya hu, toh weather bhi display karna poadega, so let's check local storage first
-            //for coordinates, if we haved saved them there.
-            getfromSessionStorage();
-        }
+// Remove inactive styles (to avoid class conflict)
+currentTab.classList.remove("bg-white", "text-blue-600");
+
+// Add active styles
+currentTab.classList.add("bg-blue-600", "text-white");
+
+// Switch Tabs
+userTab.addEventListener("click", () => switchTab(userTab));
+searchTab.addEventListener("click", () => switchTab(searchTab));
+
+function switchTab(clickedTab) {
+  if (clickedTab !== currentTab) {
+    // Remove active styles from old tab
+    currentTab.classList.remove("bg-blue-600", "text-white");
+    currentTab.classList.add("bg-white", "text-blue-600");
+
+    // Add active styles to new tab
+    clickedTab.classList.remove("bg-white", "text-blue-600");
+    clickedTab.classList.add("bg-blue-600", "text-white");
+
+    // Update current tab
+    currentTab = clickedTab;
+
+    if (clickedTab === userTab) {
+      searchForm.classList.add("hidden");
+      recentCitiesContainer.classList.add("hidden");
+      userInfoContainer.classList.add("hidden");
+      forecastContainer.classList.add("hidden");
+      getLocationWeather();
+    } else {
+      searchForm.classList.remove("hidden");
+      recentCitiesContainer.classList.remove("hidden");
+      userInfoContainer.classList.add("hidden");
+      forecastContainer.classList.add("hidden");
+      renderRecentCities();
     }
+  }
 }
 
-userTab.addEventListener("click", () => {
-    //pass clicked tab as input paramter
-    switchTab(userTab);
-});
-
-searchTab.addEventListener("click", () => {
-    //pass clicked tab as input paramter
-    switchTab(searchTab);
-});
-
-//check if cordinates are already present in session storage
-function getfromSessionStorage() {
-    const localCoordinates = sessionStorage.getItem("user-coordinates");
-    if(!localCoordinates) {
-        //agar local coordinates nahi mile
-        grantAccessContainer.classList.add("active");
-    }
-    else {
-        const coordinates = JSON.parse(localCoordinates);
-        fetchUserWeatherInfo(coordinates);
-    }
-
+// Get Weather for Current Location
+function getLocationWeather() {
+  loadingScreen.classList.remove("hidden");
+  loadingScreen.querySelector("p").textContent =
+    "📍 Please allow location access...";
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        fetchWeatherByCoords(latitude, longitude);
+      },
+      (error) => {
+        loadingScreen.classList.add("hidden");
+        alert("❌ Location access denied or unavailable.");
+      }
+    );
+  } else {
+    loadingScreen.classList.add("hidden");
+    alert("Geolocation is not supported by this browser.");
+  }
 }
 
-async function fetchUserWeatherInfo(coordinates) {
-    const {lat, lon} = coordinates;
-    // make grantcontainer invisible
-    grantAccessContainer.classList.remove("active");
-    //make loader visible
-    loadingScreen.classList.add("active");
-
-    //API CALL
-    try {
-        const response = await fetch(
-            `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`
-          );
-        const  data = await response.json();
-
-        loadingScreen.classList.remove("active");
-        userInfoContainer.classList.add("active");
-        renderWeatherInfo(data);
-    }
-    catch(err) {
-        loadingScreen.classList.remove("active");
-        //HW
-
-    }
-
+// Fetch Weather by Coordinates
+async function fetchWeatherByCoords(lat, lon) {
+  try {
+    const [weatherRes, forecastRes] = await Promise.all([
+      fetch(
+        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`
+      ),
+      fetch(
+        `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`
+      ),
+    ]);
+    const weatherData = await weatherRes.json();
+    const forecastData = await forecastRes.json();
+    displayWeatherData(weatherData);
+    displayForecast(forecastData);
+  } catch (error) {
+    alert("⚠️ Failed to load weather data.");
+  } finally {
+    loadingScreen.classList.add("hidden");
+  }
 }
 
-function renderWeatherInfo(weatherInfo) {
-    //fistly, we have to fethc the elements 
+// Fetch Weather by City Name
+async function fetchWeatherByCity(city) {
+  loadingScreen.classList.remove("hidden");
+  loadingScreen.querySelector("p").textContent = "⏳ Loading weather data...";
 
-    const cityName = document.querySelector("[data-cityName]");
-    const countryIcon = document.querySelector("[data-countryIcon]");
-    const desc = document.querySelector("[data-weatherDesc]");
-    const weatherIcon = document.querySelector("[data-weatherIcon]");
-    const temp = document.querySelector("[data-temp]");
-    const windspeed = document.querySelector("[data-windspeed]");
-    const humidity = document.querySelector("[data-humidity]");
-    const cloudiness = document.querySelector("[data-cloudiness]");
+  userInfoContainer.classList.add("hidden");
+  forecastContainer.classList.add("hidden");
 
-    console.log(weatherInfo);
+  try {
+    const [weatherRes, forecastRes] = await Promise.all([
+      fetch(
+        `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${API_KEY}&units=metric`
+      ),
+      fetch(
+        `https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${API_KEY}&units=metric`
+      ),
+    ]);
+    const weatherData = await weatherRes.json();
+    const forecastData = await forecastRes.json();
 
-    //fetch values from weatherINfo object and put it UI elements
-    cityName.innerText = weatherInfo?.name;
-    countryIcon.src = `https://flagcdn.com/144x108/${weatherInfo?.sys?.country.toLowerCase()}.png`;
-    desc.innerText = weatherInfo?.weather?.[0]?.description;
-    weatherIcon.src = `http://openweathermap.org/img/w/${weatherInfo?.weather?.[0]?.icon}.png`;
-    temp.innerText = `${weatherInfo?.main?.temp} °C`;
-    windspeed.innerText = `${weatherInfo?.wind?.speed} m/s`;
-    humidity.innerText = `${weatherInfo?.main?.humidity}%`;
-    cloudiness.innerText = `${weatherInfo?.clouds?.all}%`;
-
-
+    if (weatherData.cod === "404") {
+      alert("City not found!");
+    } else {
+      displayWeatherData(weatherData);
+      displayForecast(forecastData);
+    }
+  } catch (error) {
+    alert("⚠️ Error fetching city weather.");
+  } finally {
+    loadingScreen.classList.add("hidden");
+  }
 }
 
-function getLocation() {
-    if(navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(showPosition);
-    }
-    else {
-        //HW - show an alert for no gelolocation support available
-    }
+// Display Current Weather
+function displayWeatherData(data) {
+  if (!data || data.cod !== 200) return;
+
+  cityName.textContent = data.name;
+  weatherIcon.src = `http://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png`;
+  description.textContent = data.weather[0].description;
+  temperature.textContent = `${data.main.temp.toFixed(1)}°C`;
+  humidityVal.textContent = data.main.humidity;
+  windVal.textContent = data.wind.speed;
+
+  userInfoContainer.classList.remove("hidden");
 }
 
-function showPosition(position) {
+// Display 5-Day Forecast
+function displayForecast(data) {
+  if (!data || !data.list) return;
 
-    const userCoordinates = {
-        lat: position.coords.latitude,
-        lon: position.coords.longitude,
+  const days = {};
+
+  data.list.forEach((entry) => {
+    const date = entry.dt_txt.split(" ")[0];
+    if (!days[date] && entry.dt_txt.includes("12:00:00")) {
+      days[date] = entry;
     }
+  });
 
-    sessionStorage.setItem("user-coordinates", JSON.stringify(userCoordinates));
-    fetchUserWeatherInfo(userCoordinates);
+  forecastContainer.innerHTML = "";
+  Object.values(days)
+    .slice(0, 5)
+    .forEach((day) => {
+      const card = document.createElement("div");
+      card.className = "glass p-4 text-center rounded-lg";
 
+      const date = new Date(day.dt_txt).toLocaleDateString("en-IN", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+      });
+
+      card.innerHTML = `
+      <h3 class="font-bold mb-2">${date}</h3>
+      <img src="http://openweathermap.org/img/wn/${
+        day.weather[0].icon
+      }@2x.png" class="w-16 mx-auto mb-1" />
+      <p class="capitalize">${day.weather[0].description}</p>
+      <p>🌡️ ${day.main.temp.toFixed(1)}°C</p>
+      <p>💧 ${day.main.humidity}%</p>
+      <p>💨 ${day.wind.speed} km/h</p>
+    `;
+      forecastContainer.appendChild(card);
+    });
+
+  forecastContainer.classList.remove("hidden");
 }
 
-const grantAccessButton = document.querySelector("[data-grantAccess]");
-grantAccessButton.addEventListener("click", getLocation);
-
-const searchInput = document.querySelector("[data-searchInput]");
-
+// Handle Search Form
 searchForm.addEventListener("submit", (e) => {
-    e.preventDefault();
-    let cityName = searchInput.value;
+  e.preventDefault();
+  const city = searchInput.value.trim();
+  if (city) {
+    fetchWeatherByCity(city);
+    saveToRecent(city);
+    searchInput.value = "";
+  }
+});
 
-    if(cityName === "")
-        return;
-    else 
-        fetchSearchWeatherInfo(cityName);
-})
-
-async function fetchSearchWeatherInfo(city) {
-    loadingScreen.classList.add("active");
-    userInfoContainer.classList.remove("active");
-    grantAccessContainer.classList.remove("active");
-
-    try {
-        const response = await fetch(
-            `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${API_KEY}&units=metric`
-          );
-        const data = await response.json();
-        loadingScreen.classList.remove("active");
-        userInfoContainer.classList.add("active");
-        renderWeatherInfo(data);
-    }
-    catch(err) {
-        //hW
-    }
+// Save & Render Recent Searches
+function saveToRecent(city) {
+  let recent = JSON.parse(localStorage.getItem("recentCities")) || [];
+  recent = recent.filter((c) => c.toLowerCase() !== city.toLowerCase());
+  recent.unshift(city);
+  if (recent.length > 5) recent.pop();
+  localStorage.setItem("recentCities", JSON.stringify(recent));
+  renderRecentCities();
 }
+
+function renderRecentCities() {
+  const recent = JSON.parse(localStorage.getItem("recentCities")) || [];
+  recentCities.innerHTML = "";
+  recent.forEach((city) => {
+    const option = document.createElement("option");
+    option.value = city;
+    option.textContent = city;
+    recentCities.appendChild(option);
+  });
+}
+
+recentCities.addEventListener("change", (e) => {
+  const city = e.target.value;
+  if (city) {
+    fetchWeatherByCity(city);
+  }
+});
+
+// Init on load
+window.addEventListener("load", () => {
+  renderRecentCities();
+  getLocationWeather();
+});

@@ -1,104 +1,117 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weather App</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Merriweather+Sans:wght@300;400;500;600;700&display=swap"
-    rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    
-    <div class="wrapper">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Weather Forecast Application</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="icon" href="assets/logo.jpeg" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Merriweather+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="min-h-screen text-white flex flex-col items-center p-4">
+    <h1 class="text-4xl sm:text-5xl font-bold mb-6 drop-shadow-lg text-center">
+      🌤️ Weather Forecast
+    </h1>
 
-        <h1>Weather App</h1>
-
-        <div class="tab-container">
-            <p class="tab" data-userWeather>Your Weather</p>
-            <p class="tab" data-searchWeather>Search Weather</p>
-        </div>
-
-        <div class="weather-container">
-
-            <!-- grant location container-->
-            <div class="sub-container grant-location-container">
-                <img src="./assets/location.png" width="80" height="80" loading="lazy">
-                <p>Grant Location Access</p>
-                <p>Allow Access to get weather Information</p>
-                <button class="btn" data-grantAccess>Grant Access</button>
-            </div>
-
-            <!-- search form -> form-container-->
-            <form class="form-container" data-searchForm>
-                <input placeholder="Search for City..." data-searchInput>
-                <button class="btn" type="submit">
-                    <img src="./assets/search.png"  width="20" height="20" loading="lazy">
-                </button>
-            </form>
-
-            <!--- loading screen container -->
-            <div class="sub-container loading-container">
-                <img src="./assets/loading.gif" width="150" height="150">
-                <p>Loading</p>
-            </div>
-
-            <!-- show weather info -->
-            <div class="sub-container user-info-container">
-
-                <!--city name and Flag-->
-                <div class="name">
-                    <p data-cityName></p>
-                    <img data-countryIcon>
-                </div>
-
-                <!-- weather descriptuion-->
-                <p data-weatherDesc></p>
-                <!--weather Icon-->
-                <img data-weatherIcon>
-                <!--temperature-->
-                <p data-temp></p>
-
-                <!--3 cards - parameters-->
-                <div class="parameter-container">
-
-                    <!--card 1-->
-                    <div class="parameter">
-                        <img src="./assets/wind.png" >
-                        <p>windspeed</p>
-                        <p data-windspeed></p>
-                    </div>
-
-                    <!--card 2-->
-                    <div class="parameter">
-                        <img src="./assets/humidity.png" >
-                        <p>humidity</p>
-                        <p data-humidity></p>
-                    </div>
-
-                    <!--card 3-->
-                    <div class="parameter">
-                        <img src="./assets/cloud.png" >
-                        <p>Clouds</p>
-                        <p data-cloudiness></p>
-                    </div>
-
-                </div>
-
-
-            </div>
-
-
-
-        </div>
-
-
+    <!-- Tabs -->
+    <div class="flex flex-col sm:flex-row gap-4 mb-6">
+      <button
+        data-userWeather
+        class="bg-white text-blue-600 px-5 py-2 rounded-full font-semibold shadow-lg hover:bg-blue-100 transition"
+      >
+        Current location
+      </button>
+      <button
+        data-searchWeather
+        class="bg-white text-blue-600 px-5 py-2 rounded-full font-semibold shadow-lg hover:bg-blue-100 transition"
+      >
+        Search location
+      </button>
     </div>
 
+    <!-- Search & Recent Dropdown Container -->
+    <div
+      class="flex flex-col md:flex-row gap-4 mb-6 w-full items-start md:items-center justify-center"
+    >
+      <!-- Search Form -->
+      <form
+        data-searchForm
+        class="hidden flex w-full max-w-2xl items-center gap-2 glass px-4 py-3 rounded-lg shadow"
+      >
+        <input
+          type="text"
+          placeholder="Enter city name..."
+          data-searchInput
+          class="flex-grow px-4 py-2 text-base sm:text-lg text-black rounded-md outline-none shadow input-glass"
+        />
+        <button
+          type="submit"
+          class="bg-white text-blue-600 p-3 rounded-md shadow hover:bg-blue-100 transition flex items-center justify-center"
+          aria-label="Search"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5 sm:h-6 sm:w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z"
+            />
+          </svg>
+        </button>
+      </form>
+
+      <!-- Recent Cities Dropdown -->
+      <div
+        id="recentCitiesContainer"
+        class="hidden w-full max-w-sm glass px-4 py-2 rounded shadow"
+      >
+        <label class="block mb-1 font-medium text-white"
+          >Recent Searches:</label
+        >
+        <select
+          id="recentCities"
+          class="text-black px-4 py-2 rounded w-full select-glass"
+        ></select>
+      </div>
+    </div>
+
+    <!-- Loading Message -->
+    <div class="loading-container hidden glass text-center">
+      <p class="animate-pulse text-xl font-semibold">
+        📍 Getting your location...
+      </p>
+    </div>
+
+    <!-- Current Weather Info -->
+    <div
+      class="user-info-container hidden text-center glass max-w-md w-full mb-6"
+    >
+      <h2 id="cityName" class="text-2xl font-bold mb-2"></h2>
+      <img id="weatherIcon" class="w-20 mx-auto" />
+      <p id="description" class="capitalize text-lg mb-2"></p>
+      <p id="temperature" class="text-4xl font-bold"></p>
+      <p id="humidity" class="mt-2">
+        Humidity: <span id="humidityVal"></span>%
+      </p>
+      <p id="windSpeed">Wind: <span id="windVal"></span> km/h</p>
+    </div>
+
+    <!-- Forecast Cards -->
+    <div
+      id="forecast"
+      class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-6 w-full max-w-6xl hidden"
+    ></div>
 
     <script src="script.js"></script>
-</body>
+  </body>
 </html>
