@@ -1,5 +1,7 @@
 # 🌦️ Weather Forecast Application
 
+Your site is live at https://developerharshpanchal.github.io/Weather-App/ 
+
 A fully responsive weather forecast web application built using **HTML**, **CSS**, **JavaScript**, and **Tailwind CSS**. This app fetches real-time weather data using the **OpenWeatherMap API** and allows users to:
 
 - View weather based on **current location** (using browser geolocation)
